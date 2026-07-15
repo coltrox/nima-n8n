@@ -1,0 +1,29 @@
+# Blueprint do Render para o n8n do Nima (serviço separado do backend)
+# New > Blueprint > conecte este repositório. O n8n roda a partir da imagem oficial.
+services:
+  - type: web
+    name: nima-n8n
+    runtime: image
+    image:
+      url: docker.n8n.io/n8nio/n8n:latest
+    plan: starter          # o free tier do Render NÃO suporta disco; n8n precisa de disco p/ persistir
+    region: oregon
+    healthCheckPath: /healthz
+    disk:
+      name: n8n-data
+      mountPath: /home/node/.n8n   # sem isso o n8n perde workflows/credenciais a cada deploy
+      sizeGB: 1
+    envVars:
+      - key: N8N_PORT
+        value: 10000               # porta padrão exposta pelo Render
+      - key: N8N_PROTOCOL
+        value: https
+      - key: GENERIC_TIMEZONE
+        value: America/Sao_Paulo
+      - key: N8N_ENCRYPTION_KEY
+        generateValue: true        # o Render gera e fixa uma chave (não perca após criada)
+      # Preencha no painel depois de saber a URL final do serviço:
+      - key: N8N_HOST
+        sync: false                # ex.: nima-n8n.onrender.com
+      - key: WEBHOOK_URL
+        sync: false                # ex.: https://nima-n8n.onrender.com/

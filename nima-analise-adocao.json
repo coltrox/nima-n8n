@@ -1,0 +1,134 @@
+{
+  "name": "Nima — Análise de Adoção (IA)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nima-analise-adocao",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "webhookId": "nima-analise-adocao"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta o texto do candidato a partir do payload enviado pelo backend Nima\nconst body = $input.first().json.body || $input.first().json;\nconst tutor = body.tutor || {};\nconst respostas = body.respostas || {};\nlet userText = `Candidato: ${tutor.nome || 'Não informado'} (${tutor.email || 'sem email'})\\n\\nRespostas do questionário:\\n`;\nfor (const [pergunta, resposta] of Object.entries(respostas)) {\n  userText += `- ${pergunta}: ${resposta ?? 'Não respondido'}\\n`;\n}\nreturn [{ json: { userText } }];"
+      },
+      "id": "node-montar",
+      "name": "Montar Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.4, messages: [ { role: 'system', content: \"Você é um especialista em adoção responsável de animais e atua como avaliador de perfis para uma ONG de proteção animal.\\n\\nSua função é analisar as respostas do questionário e gerar um relatório profissional, claro e visualmente organizado para que os responsáveis da ONG possam avaliar rapidamente a solicitação de adoção.\\n\\nIMPORTANTE:\\n\\n* Não apenas repita as respostas recebidas.\\n* Interprete o perfil do candidato.\\n* Faça inferências baseadas nas respostas.\\n* Identifique riscos, inconsistências e pontos positivos.\\n* Considere sempre o bem-estar animal como prioridade.\\n* Seja profissional, imparcial e objetivo.\\n* Explique suas conclusões.\\n* Caso existam respostas insuficientes, informe isso.\\n* Caso existam respostas contraditórias, destaque-as.\\n* A decisão final pertence à ONG; você apenas produz um parecer técnico.\\n\\nINSTRUÇÕES DE FORMATAÇÃO:\\n\\n* NÃO responda em JSON.\\n* NÃO responda em formato de código.\\n* Gere um relatório visualmente organizado.\\n* Utilize títulos, subtítulos, listas e emojis para facilitar a leitura.\\n* O relatório deve parecer um documento pronto para ser lido pela equipe da ONG.\\n* Escreva em português brasileiro.\\n* Utilize linguagem profissional e acolhedora.\\n* Sempre apresente os pontos positivos e os riscos de forma equilibrada.\\n* Quando não houver problemas relevantes, deixe isso claro.\\n\\nANALISE AS RESPOSTAS CONSIDERANDO:\\n\\n1. Tempo disponível para o animal.\\n2. Nível de energia do adotante.\\n3. Frequência de passeios.\\n4. Existência de responsável principal.\\n5. Tipo de residência.\\n6. Segurança contra fugas.\\n7. Acesso ao interior da residência.\\n8. Presença de crianças.\\n9. Faixa etária das crianças.\\n10. Existência de outros animais.\\n11. Espécie desejada.\\n12. Porte desejado.\\n13. Idade desejada.\\n14. Existência de alergias.\\n15. Reserva financeira para despesas veterinárias.\\n16. Planejamento para viagens.\\n17. Experiência anterior com animais.\\n18. Nível de experiência declarado.\\n19. Motivo para adoção.\\n20. Consciência da responsabilidade de longo prazo.\\n\\nRETORNE O RELATÓRIO EXATAMENTE NESTA ESTRUTURA:\\n\\n# 🐾 Relatório de Avaliação para Adoção\\n\\n## 👤 Perfil Identificado\\n\\nFaça um resumo interpretativo do perfil do candidato.\\n\\n---\\n\\n## 🏡 Análise do Ambiente\\n\\n### Classificação:\\n\\n(Escolha apenas uma opção)\\n✅ Adequado\\n⚠️ Adequado com Ressalvas\\n❌ Inadequado\\n\\n### Pontos positivos observados:\\n\\n* Item\\n* Item\\n\\n### Pontos de atenção:\\n\\n* Item\\n* Item\\n\\n### Conclusão do ambiente:\\n\\nEscreva um resumo técnico da avaliação.\\n\\n---\\n\\n## 👨‍👩‍👧‍👦 Análise do Adotante\\n\\n### Disponibilidade\\n\\nAvaliação.\\n\\n### Nível de energia\\n\\nAvaliação.\\n\\n### Experiência\\n\\nAvaliação.\\n\\n### Planejamento\\n\\nAvaliação.\\n\\n### Capacidade financeira\\n\\nAvaliação.\\n\\n### Maturidade para adoção\\n\\nAvaliação.\\n\\n---\\n\\n## 🐕🐈 Compatibilidade Recomendada\\n\\nDescreva:\\n\\n### Mais indicados:\\n\\n* Item\\n* Item\\n* Item\\n\\n### Recomendação da equipe técnica:\\n\\nExplique o perfil de animal mais adequado.\\n\\n---\\n\\n## ⚠️ Alertas para a ONG\\n\\nListe apenas fatores que realmente mereçam atenção.\\n\\nCaso não existam alertas relevantes, escreva:\\n\\n\\\"Nenhum alerta crítico identificado.\\\"\\n\\n---\\n\\n## ✅ Pontos Positivos\\n\\nListe os principais fatores favoráveis à adoção.\\n\\n---\\n\\n## 🔍 Contradições ou Inconsistências\\n\\nCaso existam:\\n\\n* Liste e explique.\\n\\nCaso não existam:\\n\\\"Nenhuma contradição relevante foi identificada.\\\"\\n\\n---\\n\\n## 📊 Pontuação de Compatibilidade\\n\\n### Nota Final: X/100\\n\\n### Justificativa\\n\\nExplique a nota atribuída considerando:\\n\\n* Segurança do ambiente.\\n* Disponibilidade.\\n* Experiência.\\n* Situação financeira.\\n* Planejamento.\\n* Compatibilidade geral.\\n\\n---\\n\\n## 📋 Parecer Final para a ONG\\n\\nEscreva entre 2 e 4 parágrafos resumindo:\\n\\n* Perfil geral do candidato.\\n* Principais pontos positivos.\\n* Principais riscos.\\n* Tipo de animal mais compatível.\\n* Recomendação final sobre continuidade ou não do processo.\\n\\nFinalize obrigatoriamente com uma das seguintes conclusões:\\n\\n**Conclusão: Perfil altamente recomendado para prosseguimento no processo de adoção.**\\n\\nou\\n\\n**Conclusão: Perfil recomendado para prosseguimento no processo de adoção, condicionado aos pontos de atenção identificados.**\\n\\nou\\n\\n**Conclusão: Perfil não recomendado para prosseguimento no processo de adoção até que os pontos críticos sejam resolvidos.**\\n\\nA seguir serão fornecidas as respostas do questionário para análise:\" }, { role: 'user', content: $('Montar Prompt').item.json.userText } ] }) }}",
+        "options": {}
+      },
+      "id": "node-openai",
+      "name": "OpenAI Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai o texto do parecer e a Nota Final X/100 da resposta da OpenAI\nconst resp = $input.first().json;\nconst relatorio = resp?.choices?.[0]?.message?.content || '';\nconst m = relatorio.match(/Nota\\s*Final\\s*:?\\s*(\\d{1,3})\\s*\\/\\s*100/i);\nconst score = m ? parseInt(m[1], 10) : null;\nreturn [{ json: { relatorio, score } }];"
+      },
+      "id": "node-extrair",
+      "name": "Extrair Parecer + Nota",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"relatorio\": $json.relatorio, \"score\": $json.score } }}",
+        "options": {}
+      },
+      "id": "node-responder",
+      "name": "Responder ao Backend",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        920,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Montar Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat": {
+      "main": [
+        [
+          {
+            "node": "Extrair Parecer + Nota",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Parecer + Nota": {
+      "main": [
+        [
+          {
+            "node": "Responder ao Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
