@@ -21,6 +21,8 @@ services:
         value: 10000
       - key: N8N_PROTOCOL
         value: https
+      - key: N8N_PATH
+        value: /                   # Define explicitamente a rota da interface web
       - key: GENERIC_TIMEZONE
         value: America/Sao_Paulo
       - key: N8N_ENCRYPTION_KEY
