@@ -14,20 +14,21 @@ services:
       mountPath: /home/node/.n8n   # sem isso o n8n perde workflows/credenciais a cada deploy
       sizeGB: 1
     envVars:
+      # ---- SERVIDOR E REDE ----
       - key: PORT
-        value: 10000               # Adicionado para o Render reconhecer a porta
+        value: 10000               # Porta padrão exposta pelo Render
       - key: N8N_PORT
-        value: 10000               # porta padrão exposta pelo Render
+        value: 10000
       - key: N8N_PROTOCOL
         value: https
       - key: GENERIC_TIMEZONE
         value: America/Sao_Paulo
       - key: N8N_ENCRYPTION_KEY
-        generateValue: true        # o Render gera e fixa uma chave (não perca após criada)
+        generateValue: true        # O Render gera e fixa a chave de criptografia
       - key: N8N_HOST
-        sync: false                # ex.: nima-n8n.onrender.com
+        sync: false                # Definir no painel (ex.: nima-n8n.onrender.com)
       - key: WEBHOOK_URL
-        sync: false                # ex.: https://nima-n8n.onrender.com/
+        sync: false                # Definir no painel (ex.: https://nima-n8n.onrender.com/)
         
       # ---- CONFIGURAÇÃO DO BANCO POSTGRES (SUPABASE) ----
       - key: DB_TYPE
@@ -37,8 +38,18 @@ services:
       - key: DB_POSTGRESDB_PORT
         value: 5432                
       - key: DB_POSTGRESDB_HOST
-        sync: false                
+        sync: false                # Host do Supabase (ex.: aws-1-us-east-2.pooler.supabase.com)
       - key: DB_POSTGRESDB_USER
-        sync: false                
+        sync: false                # Usuário (ex.: postgres.zhlvrbaupzhjzsyzpbyz)
       - key: DB_POSTGRESDB_PASSWORD
-        sync: false
+        sync: false                # Sua senha do banco Supabase
+
+      # ---- CORREÇÕES DE DEPRECIAÇÃO DO N8N ----
+      - key: N8N_UNVERIFIED_PACKAGES_ENABLED
+        value: "true"
+      - key: N8N_RUNNERS_TASK_TIMEOUT
+        value: "300"
+      - key: N8N_COMPRESSION_NODE_MAX_DECOMPRESSED_SIZE_BYTES
+        value: "2147483648"
+      - key: N8N_COMPRESSION_NODE_MAX_ZIP_ENTRIES
+        value: "5000"
