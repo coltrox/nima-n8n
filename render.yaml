@@ -43,6 +43,8 @@ services:
         sync: false                # Usuário (ex.: postgres.zhlvrbaupzhjzsyzpbyz)
       - key: DB_POSTGRESDB_PASSWORD
         sync: false                # Sua senha do banco Supabase
+      - key: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
+        value: "false"             # Obrigatório para conexões SSL/Pooler no Supabase
 
       # ---- CORREÇÕES DE DEPRECIAÇÃO DO N8N ----
       - key: N8N_UNVERIFIED_PACKAGES_ENABLED
