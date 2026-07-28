@@ -16,29 +16,31 @@ services:
     envVars:
       # ---- SERVIDOR E REDE ----
       - key: PORT
-        value: 10000               # Porta padrão exposta pelo Render
+        value: 5678               # Porta padrão do n8n
       - key: N8N_PORT
-        value: 10000
+        value: 5678
       - key: N8N_PROTOCOL
         value: https
       - key: N8N_PATH
         value: /                   # Define explicitamente a rota da interface web
+      - key: N8N_PROXY_HOPS
+        value: "1"                 # n8n roda atrás do proxy do Render; confia no X-Forwarded-Proto
       - key: GENERIC_TIMEZONE
         value: America/Sao_Paulo
       - key: N8N_ENCRYPTION_KEY
         generateValue: true        # O Render gera e fixa a chave de criptografia
       - key: N8N_HOST
         sync: false                # Definir no painel (ex.: nima-n8n.onrender.com)
-      - key: WEBHOOK_URL
+      - key: WEBHOOK_URL           # << variável CORRETA do n8n (antes estava N8N_WEBHOOK_URL, que o n8n ignora)
         sync: false                # Definir no painel (ex.: https://nima-n8n.onrender.com/)
-        
+
       # ---- CONFIGURAÇÃO DO BANCO POSTGRES (SUPABASE) ----
       - key: DB_TYPE
         value: postgresdb
       - key: DB_POSTGRESDB_DATABASE
-        value: postgres            
+        value: postgres
       - key: DB_POSTGRESDB_PORT
-        value: 5432                
+        value: 5432                # Session pooler (NÃO use 6543/transaction pooler)
       - key: DB_POSTGRESDB_HOST
         sync: false                # Host do Supabase (ex.: aws-1-us-east-2.pooler.supabase.com)
       - key: DB_POSTGRESDB_USER
