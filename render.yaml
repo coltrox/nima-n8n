@@ -14,6 +14,8 @@ services:
       mountPath: /home/node/.n8n   # sem isso o n8n perde workflows/credenciais a cada deploy
       sizeGB: 1
     envVars:
+      - key: PORT
+        value: 10000               # Adicionado para o Render reconhecer a porta
       - key: N8N_PORT
         value: 10000               # porta padrão exposta pelo Render
       - key: N8N_PROTOCOL
