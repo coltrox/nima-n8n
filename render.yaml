@@ -22,8 +22,21 @@ services:
         value: America/Sao_Paulo
       - key: N8N_ENCRYPTION_KEY
         generateValue: true        # o Render gera e fixa uma chave (não perca após criada)
-      # Preencha no painel depois de saber a URL final do serviço:
       - key: N8N_HOST
         sync: false                # ex.: nima-n8n.onrender.com
       - key: WEBHOOK_URL
         sync: false                # ex.: https://nima-n8n.onrender.com/
+        
+      # ---- CONFIGURAÇÃO DO BANCO POSTGRES (SUPABASE) ----
+      - key: DB_TYPE
+        value: postgresdb
+      - key: DB_POSTGRESDB_DATABASE
+        value: postgres            
+      - key: DB_POSTGRESDB_PORT
+        value: 5432                
+      - key: DB_POSTGRESDB_HOST
+        sync: false                
+      - key: DB_POSTGRESDB_USER
+        sync: false                
+      - key: DB_POSTGRESDB_PASSWORD
+        sync: false
