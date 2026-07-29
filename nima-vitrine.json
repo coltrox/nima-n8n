@@ -1,0 +1,88 @@
+{
+  "name": "Nima — Vitrine Inteligente (Fluxo 1)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nima-vitrine",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-40, 300],
+      "webhookId": "nima-vitrine"
+    },
+    {
+      "parameters": {
+        "jsCode": "// FLUXO 1 — palavras-chave DETERMINISTICAS (vocabulario controlado).\n// Espelha src/servicos/matchIA.js::gerarPalavrasChave do backend. NAO deixar a\n// LLM inventar tags: o ranking (recomendacaoService) casa por estes tokens.\nconst body = $input.first().json.body || $input.first().json;\nconst q = body.respostas || {};\nconst norm = (s) => (s ?? '').toString().toLowerCase().trim();\nconst inclui = (txt, ...termos) => termos.some((t) => norm(txt).includes(t));\nconst tags = new Set();\nconst add = (...t) => t.forEach((x) => x && tags.add(x));\n\nconst tempo = norm(q.tempo_sozinho);\nif (tempo.includes('menos de 4')) add('muito-presente');\nelse if (tempo.includes('4 e 8')) add('meio-periodo');\nelse if (tempo.includes('mais de 8')) add('passa-o-dia-fora');\n\nconst energia = norm(q.nivel_energia);\nif (energia.includes('alto')) add('energia-alta');\nelse if (energia.includes('moderado')) add('energia-moderada');\nelse if (energia.includes('baixo')) add('energia-baixa');\n\nconst passeios = norm(q.frequencia_passeios);\nif (passeios.includes('intensa')) add('passeios-intensos');\nelse if (passeios.includes('moderada')) add('passeios-moderados');\nelse if (passeios.includes('leve')) add('passeios-leves');\nelse if (passeios.includes('nenhuma')) add('sem-passeios');\n\nconst lar = norm(q.tipo_residencia);\nif (lar.includes('apartamento')) { add('apartamento'); add(lar.includes('sem tela') ? 'sem-tela' : 'com-tela'); }\nelse if (lar.includes('quintal grande')) add('quintal-grande');\nelse if (lar.includes('quintal pequeno')) add('quintal-pequeno');\n\nif (norm(q.existem_criancas) === 'sim') add('tem-criancas');\nif (q.outros_animais && !inclui(q.outros_animais, 'não', 'nao', 'informado', 'nenhum')) add('tem-outros-animais');\n\nconst especie = norm(q.preferencia_especie);\nif (especie.includes('gato')) add('quer-gato');\nelse if (especie.includes('cã') || especie.includes('cachorro') || especie.includes('cao')) add('quer-cao');\n\nconst porte = norm(q.porte_preferido);\nif (porte.includes('pequeno')) add('porte-pequeno');\nelse if (porte.includes('médio') || porte.includes('medio')) add('porte-medio');\nelse if (porte.includes('grande')) add('porte-grande');\n\nconst idade = norm(q.idade_preferida);\nif (idade.includes('filhote')) add('quer-filhote');\nelse if (idade.includes('adulto')) add('quer-adulto');\nelse if (idade.includes('idoso')) add('quer-idoso');\n\nif (norm(q.alergia_pelos) === 'sim') add('alergia-pelos');\nif (norm(q.classificacao_experiencia).includes('experiente')) add('experiente');\nelse if (norm(q.classificacao_experiencia).includes('nenhuma')) add('iniciante');\nif (norm(q.reserva_custos_vet) === 'sim') add('tem-reserva-vet');\n\nreturn [{ json: { tags: [...tags], body } }];"
+      },
+      "id": "node-tags",
+      "name": "Palavras-chave",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Texto legivel do adotante para a LLM. Usa os rotulos amigaveis que o backend\n// ja envia em tutor.respostas_rotuladas; cai para as colunas cruas se faltar.\nconst body = $input.first().json.body;\nconst tutor = body.tutor || {};\nconst respostas = tutor.respostas_rotuladas || body.respostas || {};\nconst tags = $input.first().json.tags || [];\nlet userText = `Adotante: ${tutor.nome || 'Nao informado'}\\n\\nRespostas do questionario:\\n`;\nfor (const [pergunta, resposta] of Object.entries(respostas)) {\n  if (resposta == null || resposta === '') continue;\n  userText += `- ${pergunta}: ${resposta}\\n`;\n}\nuserText += `\\nPalavras-chave detectadas: ${tags.join(', ') || '—'}`;\nreturn [{ json: { userText } }];"
+      },
+      "id": "node-montar",
+      "name": "Montar Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.5, messages: [ { role: 'system', content: \"Voce e um especialista em adocao responsavel de animais que escreve o PERFIL DO ADOTANTE para a vitrine de uma ONG de protecao animal.\\n\\nA partir das respostas do questionario, escreva um retrato interpretativo e acolhedor do adotante — o que a rotina, a moradia e as preferencias dele revelam sobre o tipo de animal que combinaria melhor. NAO se limite a repetir as respostas: interprete.\\n\\nREGRAS:\\n- Escreva em portugues brasileiro, tom profissional e acolhedor.\\n- NAO atribua nota nem score (a nota e da DUPLA adotante+pet, calculada em outra etapa).\\n- NAO responda em JSON nem em bloco de codigo.\\n- Use markdown leve: **negrito** para destaques e listas curtas com '- '.\\n- Seja conciso: 2 a 3 paragrafos + uma lista de 'Pontos fortes' e uma de 'Pontos de atencao'.\\n- Se houver informacao insuficiente ou contraditoria, diga isso com naturalidade.\\n\\nESTRUTURA:\\n**Perfil do adotante**\\n(2-3 paragrafos interpretando rotina, moradia, experiencia e motivacao)\\n\\n**Pontos fortes**\\n- ...\\n\\n**Pontos de atencao**\\n- ... (ou 'Nenhum ponto critico identificado.')\\n\\n**Combina bem com**\\n(uma frase sobre o perfil de animal mais indicado)\\n\\nA seguir, as respostas do questionario:\" }, { role: 'user', content: $('Montar Prompt').item.json.userText } ] }) }}",
+        "options": {}
+      },
+      "id": "node-openai",
+      "name": "OpenAI Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta as tags deterministicas (Fluxo 1) com o relatorio da LLM.\nconst relatorio = $input.first().json?.choices?.[0]?.message?.content || '';\nconst tags = $('Palavras-chave').first().json.tags || [];\nreturn [{ json: { palavras_chave: tags, relatorio } }];"
+      },
+      "id": "node-montar-resposta",
+      "name": "Montar Resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"palavras_chave\": $json.palavras_chave, \"relatorio\": $json.relatorio } }}",
+        "options": {}
+      },
+      "id": "node-responder",
+      "name": "Responder ao Backend",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Palavras-chave", "type": "main", "index": 0 }]] },
+    "Palavras-chave": { "main": [[{ "node": "Montar Prompt", "type": "main", "index": 0 }]] },
+    "Montar Prompt": { "main": [[{ "node": "OpenAI Chat", "type": "main", "index": 0 }]] },
+    "OpenAI Chat": { "main": [[{ "node": "Montar Resposta", "type": "main", "index": 0 }]] },
+    "Montar Resposta": { "main": [[{ "node": "Responder ao Backend", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

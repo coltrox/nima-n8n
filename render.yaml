@@ -34,21 +34,11 @@ services:
       - key: WEBHOOK_URL           # << variável CORRETA do n8n (antes estava N8N_WEBHOOK_URL, que o n8n ignora)
         sync: false                # Definir no painel (ex.: https://nima-n8n.onrender.com/)
 
-      # ---- CONFIGURAÇÃO DO BANCO POSTGRES (SUPABASE) ----
-      - key: DB_TYPE
-        value: postgresdb
-      - key: DB_POSTGRESDB_DATABASE
-        value: postgres
-      - key: DB_POSTGRESDB_PORT
-        value: 5432                # Session pooler (NÃO use 6543/transaction pooler)
-      - key: DB_POSTGRESDB_HOST
-        sync: false                # Host do Supabase (ex.: aws-1-us-east-2.pooler.supabase.com)
-      - key: DB_POSTGRESDB_USER
-        sync: false                # Usuário (ex.: postgres.zhlvrbaupzhjzsyzpbyz)
-      - key: DB_POSTGRESDB_PASSWORD
-        sync: false                # Sua senha do banco Supabase
-      - key: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
-        value: "false"             # Obrigatório para conexões SSL/Pooler no Supabase
+      # ---- BANCO DO N8N ----
+      # O n8n usa SQLite no DISCO montado (mountPath /home/node/.n8n, acima).
+      # NÃO usar o Postgres do Supabase do app: isso despejava as ~115 tabelas
+      # internas do n8n dentro do banco do Nima. O SQLite no disco persiste
+      # workflows/credenciais entre deploys e mantém os bancos separados.
 
       # ---- CORREÇÕES DE DEPRECIAÇÃO DO N8N ----
       - key: N8N_UNVERIFIED_PACKAGES_ENABLED
